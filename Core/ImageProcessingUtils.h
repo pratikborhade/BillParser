@@ -55,6 +55,44 @@ public:
 	
 	static std::unordered_set<RegionType> GetRegionsList( const cv::Mat &regionMatrix);
 	
+	template< typename T >
+	static cv::Mat ApplyKernel( const cv::Mat &image, const cv::Mat &kernel, std::function< T(const cv::Mat&) > kernelFunctor )
+	{
+		if( !kernelFunctor )
+			return;
+		cv::Mat output = image.clone();
+		output.zeros( image.size(), image.type() );
+		auto size = image.size();
+		cv::Mat kerExtract = kernel.clone();
+		
+		auto kerSize = kernel.size();
+		for ( std::size_t i=0; i < std::size_t(size.height); ++i )
+		{
+			for ( std::size_t j=0; j < std::size_t(size.width); ++j )
+			{
+				kerExtract.zeros(kernel.size(), image.type());
+				for( std::size_t p=0; p < std::size_t( kerSize.height ); ++p )
+				{
+					for( std::size_t q=0; q < std::size_t(kerSize.width); ++q )
+					{
+						long offsetX = long(j+q-kerSize.width/2);
+						long offsetY = long(i+p-kerSize.height/2);
+						auto &kerPix = kernel.at<uchar>(p,q);
+						if( kerPix == 0 )
+							continue;
+						if( offsetX < 0 || offsetY < 0 || offsetX >= size.width || offsetY >= size.height)
+							continue;
+						
+						kerExtract.at< T >(p,q) = image.at<T>(offsetY, offsetX);
+					}
+				}
+				
+				output.at<T>( i,j ) = kernelFunctor(kerExtract);
+			}
+		}
+		return output;
+	}
+	
 	~ImageProcessingUtils()=default;
 
 };

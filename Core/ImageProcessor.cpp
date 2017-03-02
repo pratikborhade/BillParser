@@ -32,13 +32,26 @@ BasicProcessor::Regions BasicProcessor::ProcessImage( cv::Mat &image ) const
 	
 	
 	Mat dialateKernel = getStructuringElement( cv::MorphShapes::MORPH_RECT, cv::Size(2,2), cv::Point(-1,-1));
-	cv::dilate(grey, grey, dialateKernel);
+	Mat tempDialate = ImageProcessingUtils::ApplyKernel<uchar>(grey, dialateKernel, []( const Mat &temp )
+		{
+			auto size = temp.size();
+			if( temp.at<uchar>(size.height/2,size.width/2) == 0 )
+				return 0;
+			auto sum = temp.sum();
+			sum = sum/255;
+			if(sum > 4)
+				return 255;
+		} );
+	/*cv::dilate(grey, tempDialate, dialateKernel);
+	grey = tempDialate;
 	ImageLogger::GetInstance().Log( grey );
 	ImageLogger::GetInstance().CreateNewWindow();
-	
+	*/
 	
 	//have higher piority for vertical axis
-	cv::erode( grey, grey, dialateKernel, cv::Point(-1,-1), 2 );
+	Mat tempErode;
+	cv::erode( grey, tempErode, dialateKernel, cv::Point(-1,-1), 2 );
+	grey= tempErode;
 	ImageLogger::GetInstance().Log( grey );
 	
 	//invert
@@ -50,8 +63,9 @@ BasicProcessor::Regions BasicProcessor::ProcessImage( cv::Mat &image ) const
 		} );
 	ImageLogger::GetInstance().Log("Inverted", inverted );
 	auto erodeKernel = CreateErodeKernel(cv::Size( 3, 3 ), horizontal);
-	cv::dilate(inverted, inverted, erodeKernel, cv::Point(-1,-1), 10);
-	
+	Mat invDial;
+	cv::dilate(inverted, invDial, erodeKernel, cv::Point(-1,-1), 10);
+	inverted = invDial;
 	//regions
 	/*
 	auto regions = ImageProcessingUtils::ConnectedRegions(inverted, getStructuringElement( cv::MorphShapes::MORPH_RECT, cv::Size(3,3), cv::Point(-1,-1)), cv::Point(-1,-1));
@@ -64,8 +78,9 @@ BasicProcessor::Regions BasicProcessor::ProcessImage( cv::Mat &image ) const
 		auto original = inverted.clone();
 		auto kernelD = getStructuringElement( cv::MorphShapes::MORPH_ELLIPSE, cv::Size(sizeOfKernel,sizeOfKernel), cv::Point(-1,-1));
 		auto kernelE = getStructuringElement( cv::MorphShapes::MORPH_ELLIPSE, cv::Size(sizeOfKernel-1,sizeOfKernel-1), cv::Point(-1,-1));
-		cv::dilate(inverted, inverted, kernelD);
-		cv::erode(inverted, inverted, kernelE);
+		Mat temp;
+		cv::dilate(inverted, temp, kernelD);
+		cv::erode(temp, inverted, kernelE);
 		
 		ImageLogger::GetInstance().Log("Operating", inverted );
 		auto regions = ImageProcessingUtils::ConnectedRegions(inverted, getStructuringElement( cv::MorphShapes::MORPH_RECT, cv::Size(3,3), cv::Point(-1,-1)), cv::Point(-1,-1));

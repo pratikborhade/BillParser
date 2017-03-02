@@ -39,7 +39,7 @@ Mat ImageProcessingUtils::ConnectedRegions( const cv::Mat& mat, const Mat &kerne
 						continue;
 					long offsetX = long(j+q-pt.x);
 					long offsetY = long(i+p-pt.y);
-					if( offsetX < 0 || offsetY < 0 || offsetX > size.width || offsetY > size.height)
+					if( offsetX < 0 || offsetY < 0 || offsetX >= size.width || offsetY >= size.height)
 						continue;
 					auto &imgpix = mat.at<uchar>(offsetY, offsetX);
 					auto &kerPix = kernel.at<uchar>(p,q);
@@ -101,7 +101,7 @@ cv::Mat ImageProcessingUtils::AssignRandomColourToRegion(const cv::Mat &regionMa
 std::unordered_set<ImageProcessingUtils::RegionType> ImageProcessingUtils::GetRegionsList( const cv::Mat &regionMatrix)
 {
 	std::unordered_set<RegionType>  returnSet;
-	std::transform( regionMatrix.begin<RegionType>(), regionMatrix.end<RegionType>(), std::inserter(returnSet,returnSet.end()), [&returnSet]( const RegionType &pix)
+	std::transform( regionMatrix.begin<RegionType>(), regionMatrix.end<RegionType>(), std::inserter(returnSet,returnSet.end()), []( const RegionType &pix)
 		{
 			return pix;
 		});
